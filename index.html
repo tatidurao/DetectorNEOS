@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO/RADAR — Monitoramento Espacial</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --accent: #65f6ff;
+            --muted: #9eb4c9;
+            --safe: #62e6a5;
+            --warning: #ffc46b;
+            --danger: #ff7187;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: #050914;
+            color: #eaf5ff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background:
+                linear-gradient(180deg, rgba(3, 8, 20, .58), rgba(3, 8, 20, .88)),
+                url("meteor_bg1.png") center 42% / cover no-repeat;
+            transform: scale(1.02);
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: -35% -20%;
+            z-index: -1;
+            pointer-events: none;
+            opacity: .24;
+            background-image:
+                linear-gradient(135deg, transparent 0 49.7%, rgba(101, 246, 255, .9) 50%, transparent 50.3%),
+                linear-gradient(135deg, transparent 0 49.8%, rgba(153, 199, 255, .75) 50%, transparent 50.2%),
+                linear-gradient(135deg, transparent 0 49.6%, rgba(101, 246, 255, .65) 50%, transparent 50.4%);
+            background-size: 180px 180px, 250px 250px, 320px 320px;
+            background-position: 8% 0, 62% -35%, 95% 15%;
+            background-repeat: no-repeat;
+            animation: meteor-drift 12s linear infinite;
+        }
+
+        @keyframes meteor-drift {
+            from { transform: translate3d(0, -8%, 0); }
+            to { transform: translate3d(-12%, 28%, 0); }
+        }
+
+        header {
+            text-align: center;
+            padding: 3.2rem 1rem 1.7rem;
+        }
+
+        h1 {
+            color: #e9fcff;
+            margin: 0;
+            font-size: clamp(2.2rem, 8vw, 3.5rem);
+            text-transform: uppercase;
+            letter-spacing: .2em;
+            text-shadow: 0 0 12px rgba(101, 246, 255, .8), 0 0 36px rgba(49, 154, 255, .55);
+            font-weight: 800;
+        }
+
+        p.subtitle {
+            margin: .65rem 0 0;
+            font-size: .9rem;
+            color: #a9bed3;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        .container {
+            padding: 1.1rem 0 3rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0 1.25rem 1rem;
+        }
+
+        .section-heading p {
+            margin: 0;
+            color: var(--muted);
+            font-size: .78rem;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+
+        .section-heading .size-legend {
+            display: block;
+            margin-top: .35rem;
+            color: #8398ad;
+            font-size: .7rem;
+            letter-spacing: .02em;
+            text-transform: none;
+        }
+
+        .carousel-controls { display: flex; gap: .55rem; }
+
+        .carousel-controls button {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(101, 246, 255, .38);
+            border-radius: 50%;
+            background: rgba(7, 18, 35, .78);
+            color: var(--accent);
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: background .2s, transform .2s;
+        }
+
+        .carousel-controls button:hover {
+            background: rgba(101, 246, 255, .16);
+            transform: translateY(-2px);
+        }
+
+        .carousel-controls button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+
+        .neo-carousel {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: .2rem 1.25rem 1.5rem;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(101, 246, 255, .55) rgba(7, 18, 35, .55);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .neo-carousel::-webkit-scrollbar { height: 5px; }
+        .neo-carousel::-webkit-scrollbar-thumb {
+            border-radius: 5px;
+            background: rgba(101, 246, 255, .55);
+        }
+        .neo-carousel::-webkit-scrollbar-track { background: rgba(7, 18, 35, .55); }
+
+        .neo-card {
+            position: relative;
+            flex: 0 0 min(82vw, 370px);
+            min-height: 315px;
+            padding: 1.4rem;
+            scroll-snap-align: center;
+            overflow: hidden;
+            border: 1px solid rgba(132, 212, 255, .27);
+            border-left: 3px solid var(--accent);
+            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(12, 31, 54, .88), rgba(6, 12, 27, .91));
+            box-shadow: 0 16px 42px rgba(0, 0, 0, .35), inset 0 1px rgba(255,255,255,.07);
+            backdrop-filter: blur(12px);
+            transition: transform .25s, border-color .25s;
+        }
+
+        .neo-card::after {
+            content: "";
+            position: absolute;
+            width: 170px;
+            height: 170px;
+            right: -85px;
+            top: -85px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(101, 246, 255, .14), transparent 68%);
+            pointer-events: none;
+        }
+
+        .neo-card:active { transform: scale(.985); }
+
+        .neo-card { cursor: pointer; }
+
+        .neo-card:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 4px;
+        }
+
+        .card-topline {
+            display: flex;
+            align-items: center;
+            gap: .8rem;
+            margin-bottom: 1.15rem;
+        }
+
+        .icon-container {
+            flex-shrink: 0;
+            width: 58px;
+            height: 58px;
+            background: rgba(101, 246, 255, .08);
+            border: 1px solid rgba(101, 246, 255, .2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .icon-container img {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+        }
+
+        .neo-info h2 {
+            margin: 0 0 4px;
+            font-size: 1.18rem;
+            overflow-wrap: anywhere;
+            color: #fff;
+        }
+
+        .neo-info p {
+            margin: .72rem 0;
+            font-size: .9rem;
+            color: #b7c8d9;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #f3fbff;
+        }
+
+        .distance-context {
+            margin-top: 1rem;
+            padding: .8rem .9rem .7rem;
+            border: 1px solid rgba(101, 246, 255, .16);
+            border-radius: 12px;
+            background: rgba(101, 246, 255, .045);
+        }
+
+        .distance-context-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: .5rem;
+            color: var(--muted);
+            font-size: .68rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .distance-context-label strong {
+            color: var(--accent);
+            font-size: .85rem;
+            letter-spacing: .02em;
+            text-align: right;
+            text-transform: none;
+        }
+
+        .distance-track {
+            position: relative;
+            height: 5px;
+            margin: .85rem .25rem .55rem;
+            border-radius: 5px;
+            background: linear-gradient(90deg, rgba(101, 246, 255, .1), rgba(101, 246, 255, .38));
+        }
+
+        .distance-marker {
+            position: absolute;
+            top: 50%;
+            width: 10px;
+            height: 10px;
+            border: 2px solid #071322;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .moon-marker {
+            left: 5%;
+            background: #d7e5f0;
+            box-shadow: 0 0 8px rgba(215, 229, 240, .65);
+        }
+
+        .neo-marker {
+            background: var(--accent);
+            box-shadow: 0 0 10px rgba(101, 246, 255, .8);
+        }
+
+        .distance-track-labels {
+            display: flex;
+            justify-content: space-between;
+            color: #8398ad;
+            font-size: .65rem;
+        }
+
+        .distance-note {
+            margin: .55rem 0 0 !important;
+            color: #91a7bc !important;
+            font-size: .7rem !important;
+        }
+
+        .threat-low { border-left-color: var(--safe); }
+        .threat-medium { border-left-color: var(--warning); }
+        .threat-high { border-left-color: var(--danger); }
+
+        .threat-badge {
+            display: inline-block;
+            padding: 6px 9px;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 6px;
+            font-size: .76rem;
+            font-weight: bold;
+            margin-top: 3px;
+            background: rgba(255,255,255,.06);
+            letter-spacing: .04em;
+        }
+
+        .threat-low .threat-badge { color: var(--safe); border-color: rgba(98,230,165,.28); }
+        .threat-medium .threat-badge { color: var(--warning); border-color: rgba(255,196,107,.28); }
+        .threat-high .threat-badge { color: var(--danger); border-color: rgba(255,113,135,.28); }
+
+        #loading {
+            text-align: center;
+            margin: 3rem 1rem;
+            font-size: 1.2rem;
+            color: var(--accent);
+            animation: pulse 1.5s infinite;
+        }
+
+        .carousel-status {
+            margin: 0;
+            padding: 0 1.25rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: .78rem;
+            letter-spacing: .08em;
+        }
+
+        footer {
+            padding: 1.4rem 1rem 1.8rem;
+            border-top: 1px solid rgba(132, 212, 255, .14);
+            color: #8398ad;
+            text-align: center;
+            font-size: .82rem;
+            letter-spacing: .04em;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: text-shadow .2s, color .2s;
+        }
+
+        footer a:hover,
+        footer a:focus-visible {
+            color: #e9fcff;
+            text-shadow: 0 0 10px rgba(101, 246, 255, .75);
+        }
+
+        .neo-dialog {
+            width: min(560px, calc(100% - 2rem));
+            max-height: min(85vh, 760px);
+            padding: 0;
+            overflow: auto;
+            border: 1px solid rgba(101, 246, 255, .35);
+            border-radius: 20px;
+            background: #071322;
+            color: #eaf5ff;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, .7), 0 0 32px rgba(101, 246, 255, .12);
+        }
+
+        .neo-dialog::backdrop {
+            background: rgba(1, 5, 14, .78);
+            backdrop-filter: blur(7px);
+        }
+
+        .dialog-image {
+            position: relative;
+            height: 210px;
+            background:
+                linear-gradient(180deg, rgba(3, 8, 20, .04), rgba(3, 8, 20, .76)),
+                url("meteor_bg3.png") center 48% / cover no-repeat;
+        }
+
+        .dialog-image p {
+            position: absolute;
+            right: .8rem;
+            bottom: .7rem;
+            left: .8rem;
+            margin: 0;
+            color: #d3e2ef;
+            font-size: .72rem;
+            text-shadow: 0 1px 5px #000;
+        }
+
+        .dialog-content { padding: 1.25rem 1.4rem 1.5rem; }
+
+        .dialog-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .dialog-heading h2 {
+            margin: 0;
+            overflow-wrap: anywhere;
+            color: #fff;
+            font-size: 1.35rem;
+        }
+
+        .dialog-close {
+            flex: 0 0 40px;
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(101, 246, 255, .3);
+            border-radius: 50%;
+            background: rgba(101, 246, 255, .08);
+            color: var(--accent);
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+
+        .dialog-description {
+            margin: .9rem 0 1.1rem;
+            color: #b7c8d9;
+            line-height: 1.6;
+        }
+
+        .dialog-facts {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .7rem;
+            margin: 0;
+        }
+
+        .dialog-facts div {
+            padding: .8rem;
+            border: 1px solid rgba(132, 212, 255, .15);
+            border-radius: 10px;
+            background: rgba(101, 246, 255, .04);
+        }
+
+        .dialog-facts dt {
+            color: #91a7bc;
+            font-size: .7rem;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .dialog-facts dd {
+            margin: .35rem 0 0;
+            color: #f3fbff;
+            font-size: .88rem;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+
+        .dialog-source {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--accent);
+            font-size: .85rem;
+            text-decoration: none;
+        }
+
+        .dialog-source:hover,
+        .dialog-source:focus-visible { text-decoration: underline; }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        @media (min-width: 700px) {
+            .neo-card { flex-basis: 370px; }
+            .container { padding-top: 1.6rem; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>NEO<span style="color:#65f6ff">/</span>RADAR</h1>
+        <p class="subtitle">Monitoramento de objetos próximos à Terra</p>
+    </header>
+
+    <div class="container" id="app">
+        <div id="loading">Conectando aos satélites da NASA...</div>
+        <!-- Os cartões aparecerão aqui -->
+    </div>
+
+    <footer>
+        &lt;/&gt; desenvolvido por
+        <a href="https://www.instagram.com/tatiladurao/" target="_blank" rel="noopener noreferrer">@tatiladurao</a>
+    </footer>
+
+    <dialog class="neo-dialog" aria-labelledby="dialog-title">
+        <div class="dialog-image" role="img" aria-label="Ilustração artística de um asteroide no espaço">
+            <p>Ilustração artística — não é uma foto real deste objeto.</p>
+        </div>
+        <div class="dialog-content">
+            <div class="dialog-heading">
+                <h2 id="dialog-title"></h2>
+                <button class="dialog-close" type="button" aria-label="Fechar detalhes">×</button>
+            </div>
+            <p class="dialog-description"></p>
+            <dl class="dialog-facts"></dl>
+            <a class="dialog-source" target="_blank" rel="noopener noreferrer">Abrir ficha do objeto no JPL/NASA ↗</a>
+        </div>
+    </dialog>
+
+    <script>
+        // Mesma chave da API que você usou no React
+        const API_KEY = "nAkq24DJ2dHxzqXyzfdreTvczCVOnwJuFLFq4bDZ";
+        const API_URL = `https://api.nasa.gov/neo/rest/v1/feed?api_key=${API_KEY}`;
+
+        async function getNeos() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                let meteorsObj = data.near_earth_objects;
+                let meteor_arr = Object.keys(meteorsObj).map(date => meteorsObj[date]);
+                let meteors = [].concat.apply([], meteor_arr);
+
+                meteors.forEach(element => {
+                    let min = element.estimated_diameter.kilometers.estimated_diameter_min;
+                    let max = element.estimated_diameter.kilometers.estimated_diameter_max;
+                    let diameter = (min + max) / 2;
+                    let distance = element.close_approach_data[0].miss_distance.kilometers;
+                    
+                    let threatScore = (diameter / distance) * 1000000000;
+                    element.threatScore = threatScore; 
+                });
+
+                meteors.sort((a, b) =>
+                    parseFloat(a.close_approach_data[0].miss_distance.kilometers) -
+                    parseFloat(b.close_approach_data[0].miss_distance.kilometers)
+                );
+                let top5 = meteors.slice(0, 5);
+
+                renderScreen(top5);
+
+            } catch (error) {
+                document.getElementById('loading').innerText = "Erro ao buscar dados da NASA.";
+                console.error(error);
+            }
+        }
+
+        function renderScreen(neos) {
+            const app = document.getElementById('app');
+            const dialog = document.querySelector('.neo-dialog');
+            const dialogTitle = dialog.querySelector('#dialog-title');
+            const dialogDescription = dialog.querySelector('.dialog-description');
+            const dialogFacts = dialog.querySelector('.dialog-facts');
+            const dialogSource = dialog.querySelector('.dialog-source');
+            app.innerHTML = `
+                <div class="section-heading">
+                    <div>
+                        <p>Objetos em aproximação · ${neos.length} detectados</p>
+                        <span class="size-legend">Ícones com tamanho relativo entre os objetos exibidos</span>
+                    </div>
+                    <div class="carousel-controls" aria-label="Navegação do catálogo">
+                        <button type="button" class="previous" aria-label="Objeto anterior">‹</button>
+                        <button type="button" class="next" aria-label="Próximo objeto">›</button>
+                    </div>
+                </div>
+                <div class="neo-carousel" aria-label="Catálogo de asteroides e cometas"></div>
+                <p class="carousel-status" aria-live="polite">Deslize para explorar os objetos</p>
+            `;
+            const carousel = app.querySelector('.neo-carousel');
+            const diameters = neos.map(neo => {
+                const { estimated_diameter: diameter } = neo;
+                return (
+                    diameter.kilometers.estimated_diameter_min +
+                    diameter.kilometers.estimated_diameter_max
+                ) / 2;
+            });
+            const minDiameter = Math.min(...diameters);
+            const maxDiameter = Math.max(...diameters);
+
+            neos.forEach((neo, index) => {
+                const approachData = neo.close_approach_data[0];
+                const velocity = parseFloat(approachData.relative_velocity.kilometers_per_hour).toFixed(0);
+                const distanceKm = parseFloat(approachData.miss_distance.kilometers);
+                const distance = distanceKm.toFixed(0);
+                const lunarDistances = distanceKm / 384400;
+                const scaleMax = Math.max(20, Math.ceil(lunarDistances / 5) * 5);
+                const moonPosition = 1 / scaleMax * 100;
+                const scalePosition = lunarDistances / scaleMax * 100;
+                const minSize = parseFloat(neo.estimated_diameter.kilometers.estimated_diameter_min).toFixed(2);
+                const maxSize = parseFloat(neo.estimated_diameter.kilometers.estimated_diameter_max).toFixed(2);
+                const score = neo.threatScore;
+                const relativeSize = maxDiameter === minDiameter
+                    ? 0.5
+                    : (diameters[index] - minDiameter) / (maxDiameter - minDiameter);
+                const iconSize = Math.round(24 + relativeSize * 26);
+
+                let threatClass = "threat-high";
+                let threatText = "ALERTA MÁXIMO";
+                if (score <= 30) {
+                    threatClass = "threat-low";
+                    threatText = "SEGURO";
+                } else if (score <= 75) {
+                    threatClass = "threat-medium";
+                    threatText = "ATENÇÃO";
+                }
+
+                const card = document.createElement('div');
+                card.className = `neo-card ${threatClass}`;
+                card.tabIndex = 0;
+                card.setAttribute('role', 'button');
+                card.setAttribute('aria-label', `Ver detalhes de ${neo.name}`);
+                card.innerHTML = `
+                    <div class="card-topline">
+                        <div class="icon-container" role="img" aria-label="Ícone em escala relativa ao tamanho estimado dos objetos exibidos">
+                            <img src="meteor_icon.png" alt="" style="width:${iconSize}px;height:${iconSize}px">
+                        </div>
+                        <div class="neo-info">
+                            <h2>${neo.name}</h2>
+                            <div class="threat-badge">Nível: ${threatText} (${score.toFixed(1)})</div>
+                        </div>
+                    </div>
+                    <div class="neo-info">
+                        <p>Data: <span class="highlight">${approachData.close_approach_date}</span></p>
+                        <p>Tamanho: <span class="highlight">${minSize}km - ${maxSize}km</span></p>
+                        <p>Velocidade: <span class="highlight">${Number(velocity).toLocaleString('pt-BR')} km/h</span></p>
+                        <p>Distância: <span class="highlight">${Number(distance).toLocaleString('pt-BR')} km</span></p>
+                        <div class="distance-context">
+                            <div class="distance-context-label">
+                                <span>Referência Terra–Lua</span>
+                                <strong>${lunarDistances.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}x distância lunar</strong>
+                            </div>
+                            <div class="distance-track" role="img" aria-label="Escala de 0 a ${scaleMax} distâncias médias entre a Terra e a Lua; este objeto está a aproximadamente ${lunarDistances.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} distâncias lunares">
+                                <span class="distance-marker moon-marker" style="left:${moonPosition}%" aria-hidden="true"></span>
+                                <span class="distance-marker neo-marker" style="left:${scalePosition}%" aria-hidden="true"></span>
+                            </div>
+                            <div class="distance-track-labels" aria-hidden="true">
+                                <span>Terra</span><span>Lua · 1x</span><span>Escala até ${scaleMax}x</span>
+                            </div>
+                            <p class="distance-note">Comparação  - distância média Terra–Lua (384.400 km)</p>
+                        </div>
+                    </div>
+                `;
+                const openDetails = () => {
+                    dialogTitle.textContent = neo.name;
+                    dialogDescription.textContent =
+                        `${neo.name} é um objeto próximo da Terra catalogado pela NASA. ` +
+                        `A aproximação exibida está prevista para ${approachData.close_approach_date}. ` +
+                        `Os dados abaixo são estimativas orbitais e não representam uma previsão de colisão.`;
+                    const facts = [
+                        ['Diâmetro estimado', `${minSize}–${maxSize} km`],
+                        ['Magnitude absoluta', neo.absolute_magnitude_h.toLocaleString('pt-BR')],
+                        ['Classificação NASA', neo.is_potentially_hazardous_asteroid
+                            ? 'Potencialmente perigoso'
+                            : 'Não classificado como potencialmente perigoso'],
+                        ['Distância da aproximação', `${Number(distance).toLocaleString('pt-BR')} km`],
+                        ['Velocidade relativa', `${Number(velocity).toLocaleString('pt-BR')} km/h`],
+                        ['Data da aproximação', approachData.close_approach_date]
+                    ];
+                    dialogFacts.replaceChildren(...facts.map(([label, value]) => {
+                        const item = document.createElement('div');
+                        const term = document.createElement('dt');
+                        const detail = document.createElement('dd');
+                        term.textContent = label;
+                        detail.textContent = value;
+                        item.append(term, detail);
+                        return item;
+                    }));
+                    dialogSource.href = neo.nasa_jpl_url;
+                    dialog.showModal();
+                };
+                card.addEventListener('click', openDetails);
+                card.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        openDetails();
+                    }
+                });
+                carousel.appendChild(card);
+            });
+
+            dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
+            dialog.addEventListener('click', event => {
+                if (event.target === dialog) dialog.close();
+            });
+
+            const status = app.querySelector('.carousel-status');
+            const cards = Array.from(carousel.querySelectorAll('.neo-card'));
+            const getCurrentIndex = () => {
+                if (carousel.scrollLeft <= 1) return 0;
+                const center = carousel.getBoundingClientRect().left + carousel.clientWidth / 2;
+                return cards.reduce((nearest, card, index) => {
+                    const distance = Math.abs(card.getBoundingClientRect().left + card.offsetWidth / 2 - center);
+                    return distance < nearest.distance ? { index, distance } : nearest;
+                }, { index: 0, distance: Infinity }).index;
+            };
+            const goToCard = index => {
+                cards[Math.max(0, Math.min(cards.length - 1, index))]
+                    .scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            };
+            const updateStatus = () => {
+                status.textContent = `Objeto ${getCurrentIndex() + 1} de ${neos.length} · Deslize para explorar`;
+            };
+            app.querySelector('.previous').addEventListener('click', () => {
+                goToCard(getCurrentIndex() - 1);
+            });
+            app.querySelector('.next').addEventListener('click', () => {
+                goToCard(getCurrentIndex() + 1);
+            });
+            carousel.addEventListener('scroll', updateStatus, { passive: true });
+            updateStatus();
+        }
+
+        getNeos();
+    </script>
+</body>
+</html>
