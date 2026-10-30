@@ -103,15 +103,6 @@
             text-transform: uppercase;
         }
 
-        .section-heading .size-legend {
-            display: block;
-            margin-top: .35rem;
-            color: #8398ad;
-            font-size: .7rem;
-            letter-spacing: .02em;
-            text-transform: none;
-        }
-
         .carousel-controls { display: flex; gap: .55rem; }
 
         .carousel-controls button {
@@ -325,11 +316,144 @@
         .threat-high .threat-badge { color: var(--danger); border-color: rgba(255,113,135,.28); }
 
         #loading {
+            position: relative;
+            width: min(100% - 2rem, 560px);
+            margin: 1.2rem auto 2.5rem;
+            padding: 2rem clamp(1.2rem, 5vw, 2.5rem);
+            overflow: hidden;
+            border: 1px solid rgba(101, 246, 255, .25);
+            border-radius: 22px;
+            background: linear-gradient(145deg, rgba(8, 24, 43, .94), rgba(4, 10, 23, .95));
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .35), inset 0 1px rgba(255,255,255,.06);
             text-align: center;
-            margin: 3rem 1rem;
-            font-size: 1.2rem;
+        }
+
+        #loading::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: .8;
+        }
+
+        .loading-orbit {
+            position: relative;
+            width: 112px;
+            height: 112px;
+            margin: 0 auto 1.4rem;
+            display: grid;
+            place-items: center;
+        }
+
+        .loading-orbit-ring {
+            position: absolute;
+            inset: 8px;
+            border: 1px solid rgba(101, 246, 255, .28);
+            border-radius: 50%;
+            box-shadow: 0 0 24px rgba(101, 246, 255, .08), inset 0 0 20px rgba(101, 246, 255, .06);
+        }
+
+        .loading-orbit-ring::before,
+        .loading-orbit-ring::after {
+            content: "";
+            position: absolute;
+            border: 1px solid rgba(101, 246, 255, .12);
+            border-radius: 50%;
+        }
+
+        .loading-orbit-ring::before { inset: 10px -8px; transform: rotate(35deg); }
+        .loading-orbit-ring::after { inset: -8px 10px; transform: rotate(-35deg); }
+
+        .loading-planet {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 28%, #e8fbff, #65f6ff 35%, #167ab0 78%);
+            box-shadow: 0 0 24px rgba(101, 246, 255, .65);
+        }
+
+        .loading-orbit-meteor {
+            position: absolute;
+            width: 34px;
+            height: 34px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 8px rgba(101, 246, 255, .8));
+            animation: meteor-orbit 2.8s linear infinite;
+        }
+
+        @keyframes meteor-orbit {
+            from { transform: rotate(0deg) translateX(49px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(49px) rotate(-360deg); }
+        }
+
+        .loading-eyebrow {
+            margin: 0 0 .55rem;
             color: var(--accent);
-            animation: pulse 1.5s infinite;
+            font: 700 .68rem/1.4 Consolas, "Courier New", monospace;
+            letter-spacing: .2em;
+        }
+
+        .loading-title {
+            margin: 0;
+            color: #f3fbff;
+            font-size: clamp(1.25rem, 5vw, 1.65rem);
+            letter-spacing: .02em;
+        }
+
+        .loading-description {
+            margin: .65rem auto 1.5rem;
+            max-width: 390px;
+            color: #a9bed3;
+            font-size: .9rem;
+            line-height: 1.6;
+        }
+
+        .loading-track {
+            position: relative;
+            height: 7px;
+            margin: 0 0 .7rem;
+            overflow: hidden;
+            border: 1px solid rgba(101, 246, 255, .2);
+            border-radius: 10px;
+            background: rgba(101, 246, 255, .07);
+        }
+
+        .loading-progress {
+            display: block;
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #218bd1, #65f6ff);
+            box-shadow: 0 0 14px rgba(101, 246, 255, .7);
+            transition: width .12s linear;
+        }
+
+        .loading-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            color: #91a7bc;
+            font: .68rem/1.5 Consolas, "Courier New", monospace;
+            letter-spacing: .06em;
+            text-align: left;
+        }
+
+        .loading-meta span:last-child { color: var(--accent); }
+
+        .loading-code {
+            margin: 1.35rem 0 0;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(132, 212, 255, .12);
+            color: #68859f;
+            font: .67rem/1.8 Consolas, "Courier New", monospace;
+            text-align: left;
+        }
+
+        .loading-code span { color: #62e6a5; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .loading-orbit-meteor { animation: none; }
         }
 
         .carousel-status {
@@ -472,12 +596,6 @@
         .dialog-source:hover,
         .dialog-source:focus-visible { text-decoration: underline; }
 
-        @keyframes pulse {
-            0% { opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { opacity: 0.5; }
-        }
-
         @media (min-width: 700px) {
             .neo-card { flex-basis: 370px; }
             .container { padding-top: 1.6rem; }
@@ -500,7 +618,24 @@
     </header>
 
     <div class="container" id="app">
-        <div id="loading">Conectando aos satélites da NASA...</div>
+        <section id="loading" role="status" aria-live="polite" aria-label="Carregando dados de objetos próximos à Terra">
+            <div class="loading-orbit" aria-hidden="true">
+                <span class="loading-orbit-ring"></span>
+                <span class="loading-planet"></span>
+                <img class="loading-orbit-meteor" src="meteor_icon.png" alt="">
+            </div>
+            <p class="loading-eyebrow">NASA / NEO FEED</p>
+            <h2 class="loading-title">Rastreando o espaço próximo</h2>
+            <p class="loading-description">Sincronizando órbitas e calculando as próximas aproximações da Terra.</p>
+            <div class="loading-track" role="progressbar" aria-label="Progresso da inicialização" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <span class="loading-progress"></span>
+            </div>
+            <div class="loading-meta">
+                <span class="loading-status">INICIALIZANDO TELEMETRIA...</span>
+                <span class="loading-percent">00%</span>
+            </div>
+            <p class="loading-code" aria-hidden="true"><span>&gt;</span> fetch(NEO_FEED) <span class="loading-code-status">// aguardando dados orbitais</span></p>
+        </section>
         <!-- Os cartões aparecerão aqui -->
     </div>
 
@@ -530,8 +665,44 @@
         const API_URL = `https://api.nasa.gov/neo/rest/v1/feed?api_key=${API_KEY}`;
 
         async function getNeos() {
+            const loadingStartedAt = Date.now();
+            const minimumLoadingTime = 10000;
+            const progressBar = document.querySelector('.loading-progress');
+            const progressTrack = document.querySelector('.loading-track');
+            const progressPercent = document.querySelector('.loading-percent');
+            const loadingStatus = document.querySelector('.loading-status');
+            const codeStatus = document.querySelector('.loading-code-status');
+            const progressTimer = setInterval(() => {
+                const progress = Math.min(100, Math.floor((Date.now() - loadingStartedAt) / minimumLoadingTime * 100));
+                progressBar.style.width = `${progress}%`;
+                progressTrack.setAttribute('aria-valuenow', progress);
+                progressPercent.textContent = `${String(progress).padStart(2, '0')}%`;
+
+                if (progress < 35) {
+                    loadingStatus.textContent = 'CONECTANDO À REDE DE DADOS...';
+                    codeStatus.textContent = '// estabelecendo conexão';
+                } else if (progress < 70) {
+                    loadingStatus.textContent = 'ANALISANDO TRAJETÓRIAS...';
+                    codeStatus.textContent = '// processando órbitas';
+                } else {
+                    loadingStatus.textContent = 'CALCULANDO APROXIMAÇÕES...';
+                    codeStatus.textContent = '// quase pronto';
+                }
+
+                if (progress === 100) clearInterval(progressTimer);
+            }, 100);
+            const waitForMinimumLoadingTime = async () => {
+                const remainingTime = minimumLoadingTime - (Date.now() - loadingStartedAt);
+                if (remainingTime > 0) {
+                    await new Promise(resolve => setTimeout(resolve, remainingTime));
+                }
+            };
+
             try {
                 const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`A NASA API respondeu com status ${response.status}`);
+                }
                 const data = await response.json();
                 
                 let meteorsObj = data.near_earth_objects;
@@ -554,9 +725,11 @@
                 );
                 let top5 = meteors.slice(0, 5);
 
+                await waitForMinimumLoadingTime();
                 renderScreen(top5);
 
             } catch (error) {
+                await waitForMinimumLoadingTime();
                 document.getElementById('loading').innerText = "Erro ao buscar dados da NASA.";
                 console.error(error);
             }
@@ -573,7 +746,6 @@
                 <div class="section-heading">
                     <div>
                         <p>Objetos em aproximação · ${neos.length} detectados</p>
-                        <span class="size-legend">Ícones com tamanho relativo entre os objetos exibidos</span>
                     </div>
                     <div class="carousel-controls" aria-label="Navegação do catálogo">
                         <button type="button" class="previous" aria-label="Objeto anterior">‹</button>
@@ -628,7 +800,7 @@
                 card.setAttribute('aria-label', `Ver detalhes de ${neo.name}`);
                 card.innerHTML = `
                     <div class="card-topline">
-                        <div class="icon-container" role="img" aria-label="Ícone em escala relativa ao tamanho estimado dos objetos exibidos">
+                        <div class="icon-container" role="img" aria-label="Ilustração de asteroide">
                             <img src="meteor_icon.png" alt="" style="width:${iconSize}px;height:${iconSize}px">
                         </div>
                         <div class="neo-info">
